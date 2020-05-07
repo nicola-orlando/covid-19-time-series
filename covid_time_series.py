@@ -21,6 +21,11 @@ from sklearn.linear_model import BayesianRidge, LinearRegression
 
 import pickle
 
+# Global properties 
+number_of_shifts_input=1
+feature_to_analyse='ConfirmedCases'
+
+
 # Used to merge different regions of some contries (Canada, France, ..)
 def group_and_sum(dataframe,first_feature,second_feature,manipulated_data_first,manipulated_data_second,title_first,title_second): 
     grouped_data = dataframe.groupby([first_feature,second_feature])[manipulated_data_first,manipulated_data_second].sum().reset_index()
@@ -32,7 +37,7 @@ def list_of_countries(dataframe,test_run=True,print_verbose=False):
         print('\n----> Obtaining list of countries')
     countries=[]
     if test_run:
-            countries.append('Sweden')
+            countries.append('Italy')
     else: 
         countries=dataframe.Country_Region.unique()
     return countries 
@@ -47,8 +52,8 @@ def plot_series(dataframe,country,print_verbose=False):
     dataframe['FatalitiesPerCases']=dataframe['Fatalities']/dataframe['ConfirmedCases']
     x_len=len(dataframe.Country_Region.to_numpy())*0.19
     # Cumulative cases
-    dataframe.plot(x="Date", y=features, kind="bar",figsize=(x_len,4.8))
     ax=plt.axes()
+    dataframe.plot(x="Date", y=features, kind="bar",figsize=(x_len,4.8))
     plt.xticks(rotation=90)
     plt.title('Confirmed cases and fatalities in '+country)
     plt.grid(True,axis='y')
@@ -59,10 +64,10 @@ def plot_series(dataframe,country,print_verbose=False):
     plt.savefig(plot_name)
     plt.close()
     # Cumulative fatalities per case
+    ax=plt.axes()
     dataframe=dataframe[dataframe.FatalitiesPerCases != 0]    
     dataframe.plot(x="Date", y='FatalitiesPerCases', kind="line",figsize=(x_len,4.8),marker='o')
     plt.title('Fatalities per confirmed cases in '+country)
-    ax=plt.axes()
     plt.grid(True,axis='y')
     plt.xticks(rotation=90)
     plt.tight_layout()
@@ -177,7 +182,7 @@ def add_score_on_overlapping_days(dataframe_base,dataframe_test,print_verbose=Fa
 # Obtain the first row in the testing dataset which has no prediction from the trained model, this is to be used to evaluate the model
 # Expected output structure [ConfirmedCases_1,..ConfirmedCases_75]
 # This will aslo use the last row with available prediction where the score will be used for the last available data entry ('_1' feature)
-def extract_last_row_for_testing(dataframe,number_of_shifts,print_verbose=False): 
+def extract_last_row_for_testing(dataframe,number_of_shifts,print_verbose=False,feature=feature_to_analyse): 
     if print_verbose: 
         print('Extract first emtpy row from testing data to be filled up with model prediction')
         print('In extract_last_row_for_testing printing input data')
@@ -189,10 +194,10 @@ def extract_last_row_for_testing(dataframe,number_of_shifts,print_verbose=False)
     row_predicted_copy = row_predicted.copy()
     for index in range(1,number_of_shifts+1): 
         index_shifted = index-1 
-        feature_original='ConfirmedCases'+'_'+str(index_shifted)
-        feature_mod='ConfirmedCases'+'_'+str(index)
+        feature_original=feature+'_'+str(index_shifted)
+        feature_mod=feature+'_'+str(index)
         if index == 1: 
-            row_predicted['ConfirmedCases_1'].iloc[0]=row_predicted_copy['score_predictions_bayes'].iloc[0]
+            row_predicted[feature+'_1'].iloc[0]=row_predicted_copy['score_predictions_bayes'].iloc[0]
         else: 
             row_predicted[feature_mod].iloc[0]=row_predicted_copy[feature_original].iloc[0]
     if print_verbose:
@@ -228,9 +233,9 @@ def replace_first_row(dataframe_bottom,row,print_verbose=False):
         print(dataframe_bottom.head())
     return dataframe_bottom
 
-def add_feature(dataframe_base,series,title,print_verbose=False): 
+def add_feature(dataframe_base,series,title,print_verbose=False,feature=feature_to_analyse): 
     array=series.to_numpy()
-    dataframe_base['ConfirmedCases']=array
+    dataframe_base[feature]=array
     if print_verbose:
         print(array)
         print(dataframe_base.head())
@@ -268,7 +273,7 @@ for country in countries:
     # Make plot of input series
     plot_series(df_for_training,country)
     # Arrange the dataset as needed for a classification problem 
-    df_for_training=transpose_the_dataset(df_for_training,'ConfirmedCases')
+    df_for_training=transpose_the_dataset(df_for_training,feature_to_analyse,number_of_shifts_input)
     # Get the number of shifts and the actual output dataframe 
     number_of_shifts = df_for_training[1]
     df_for_training = df_for_training[0]
@@ -280,7 +285,7 @@ for country in countries:
     features_to_drop=['Date', 'Country_Region', 'Fatalities']
     for feature_to_drop in features_to_drop:
         df_for_training = df_for_training.drop(feature_to_drop,1)
-    y_train = df_for_training.pop('ConfirmedCases')
+    y_train = df_for_training.pop(feature_to_analyse)
     
     print('\nTraining dataset after arrangements needed to convert into a classification problem and cleanup')
     print(df_for_training.head())
@@ -295,15 +300,15 @@ for country in countries:
     print(output_dataframe.head())
 
     # Perform some plots
-    plot_model_predictions_vs_time(output_dataframe,'ConfirmedCases','score_predictions_bayes','Confirmed cases')
-    plot_data_vs_predicted(output_dataframe,'ConfirmedCases','score_predictions_bayes','Confirmed cases')
+    plot_model_predictions_vs_time(output_dataframe,feature_to_analyse,'score_predictions_bayes','Confirmed cases')
+    plot_data_vs_predicted(output_dataframe,feature_to_analyse,'score_predictions_bayes','Confirmed cases')
 
     print('\nNow looking at the dataset for testing for the first time (df_for_testing)')
     print(df_for_testing.head())
     dataframe_merged =  add_score_on_overlapping_days(df_for_testing,output_dataframe)
     
     # Basic cleanup operations on the testing dataframe which has been merged with the training set
-    features_to_drop=['ConfirmedCases', 'Data-Over-Predicted', 'Date', 'Country_Region_x', 'Country_Region_y', 'Fatalities', 'ForecastId', 'Province_State']
+    features_to_drop=[feature_to_analyse, 'Data-Over-Predicted', 'Date', 'Country_Region_x', 'Country_Region_y', 'Fatalities', 'ForecastId', 'Province_State']
     for feature_to_drop in features_to_drop:
         dataframe_merged = dataframe_merged.drop(feature_to_drop,1)
 
