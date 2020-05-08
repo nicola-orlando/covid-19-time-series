@@ -24,7 +24,7 @@ import pickle
 # Global properties 
 number_of_shifts_input=1
 feature_to_analyse='ConfirmedCases'
-
+feature_title='Confirmed cases'
 
 # Used to merge different regions of some contries (Canada, France, ..)
 def group_and_sum(dataframe,first_feature,second_feature,manipulated_data_first,manipulated_data_second,title_first,title_second): 
@@ -59,9 +59,9 @@ def plot_series(dataframe,country,print_verbose=False):
     plt.grid(True,axis='y')
     plt.tight_layout()
     plt.yscale('log') 
-    plt.show()
     plot_name=country+'_evol.png'
     plt.savefig(plot_name)
+    plt.show()
     plt.close()
     # Cumulative fatalities per case
     ax=plt.axes()
@@ -73,6 +73,7 @@ def plot_series(dataframe,country,print_verbose=False):
     plt.tight_layout()
     plot_name=country+'_ratio.png'
     plt.savefig(plot_name)
+    plt.show()
     plt.close()
 
 # Cleanup, rearrange and select a given country in the dataset
@@ -144,6 +145,7 @@ def plot_model_predictions_vs_time(dataframe,base_feature,model_prediction,base_
     plt.tight_layout()
     plot_name=country+'_pred_vs_time.png'
     plt.savefig(plot_name)
+    plt.show()
     plt.close()
     # Ratio data over predicted 
     ax=plt.axes()
@@ -154,6 +156,7 @@ def plot_model_predictions_vs_time(dataframe,base_feature,model_prediction,base_
     plt.tight_layout()
     plot_name=country+'_data_over_predicted.png'
     plt.savefig(plot_name)
+    plt.show()
     plt.close()
 
 #  Prepare some validation plots for the model predictions on trained data (2D plots)
@@ -168,6 +171,7 @@ def plot_data_vs_predicted(dataframe,base_feature,model_prediction,base_feature_
     plt.tight_layout()
     plot_name=country+'_data_vs_pred.png'
     plt.savefig(plot_name)
+    plt.show()
     plt.close()
 
 # Add score on days which overalp in training and testing dataset
@@ -291,7 +295,7 @@ for country in countries:
     print(df_for_training.head())
 
     # Train the model and return the predictions for the training dataset
-    scores = train_model(df_for_training,y_train,'logreg')
+    scores = train_model(df_for_training,y_train,'model')
 
     # Append the scores to the training data, eventually need to clean this up as not all is necessary..
     dataframe_with_scores = pd.DataFrame(data = scores, columns = ['score_predictions_bayes'], index = df_for_training_copy.index.copy())
@@ -300,8 +304,8 @@ for country in countries:
     print(output_dataframe.head())
 
     # Perform some plots
-    plot_model_predictions_vs_time(output_dataframe,feature_to_analyse,'score_predictions_bayes','Confirmed cases')
-    plot_data_vs_predicted(output_dataframe,feature_to_analyse,'score_predictions_bayes','Confirmed cases')
+    plot_model_predictions_vs_time(output_dataframe,feature_to_analyse,'score_predictions_bayes',feature_title)
+    plot_data_vs_predicted(output_dataframe,feature_to_analyse,'score_predictions_bayes',feature_title)
 
     print('\nNow looking at the dataset for testing for the first time (df_for_testing)')
     print(df_for_testing.head())
@@ -336,7 +340,7 @@ for country in countries:
 
         # Redefine second dataset taking out the entries with score already filled up
         dataframe_merged_second=dataframe_merged_second[dataframe_merged_second['score_predictions_bayes'] != dataframe_merged_second['score_predictions_bayes']]
-        score_to_be_saved = load_and_apply_the_model(dataframe_to_be_evaluated,'logreg')
+        score_to_be_saved = load_and_apply_the_model(dataframe_to_be_evaluated,'model')
         dataframe_to_be_evaluated['score_predictions_bayes']=score_to_be_saved
 
         dataframe_merged_second = replace_first_row(dataframe_merged_second,dataframe_to_be_evaluated)
