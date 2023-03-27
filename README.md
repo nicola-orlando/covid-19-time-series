@@ -1,4 +1,4 @@
-# covid-19-time-series
+# Covid-19 pandemic evolution predictions with a Bayesian-Ridge model 
 
 Scripts for Kaggle challenge https://www.kaggle.com/c/covid19-global-forecasting-week-4 
 
@@ -42,7 +42,7 @@ The method is further illustrated by a graph you can find here below.
 
 For our specific case we will use the simplest approach where N=1, that is we try to predict the confirmed cases for the day N+1 based on the data from the day N and N-1. This approach as some advantages
 
-Minimises the probability of overtraining the model Increase the likelihood that the model has to learn some intrinsic data patterns for our problem, e.g. Value N > Value N-1. 
+Minimises the probability of overtraining the model Increase the likelihood that the model has to learn some intrinsic data patterns for our problem, e.g. Value N > Value N-1. The technical implementation has enough flexibility to change this model to that of one using more adiacent data points.  
 
 ## Training the model
 
@@ -56,33 +56,20 @@ Now it is time to train our BayesianRidge model. The current setup is not necess
 
 Above you can see two example of plots showing how well the model is able to fit the data, here some considerations
 
-The first plot shows the ratio of the data over the score of the fitted model. Note that all the data shown in this plot is used to train the model. You can see that the model severely over-predicts the number of cases before mid March. This can be caused by lack of flexibility of the fit model and/or severe under-reporting of cases in the initial COVID-19 outbreak whch is not consistent with the overall grow rate of the COVID-19 cases.
-The second plot shows overall the linearity response of the fitted model as the number of cases increases.
+- The first plot shows the ratio of the data over the score of the fitted model. Note that all the data shown in this plot is used to train the model. You can see that the model severely over-predicts the number of cases before mid March. This can be caused by lack of flexibility of the fit model and/or severe under-reporting of cases in the initial COVID-19 outbreak whch is not consistent with the overall grow rate of the COVID-19 cases.
+- The second plot shows overall the linearity response of the fitted model as the number of cases increases.
 
-## Make predictions
+## Make predictions
 
-Now it is time to make some predictions on the testing set. Here we follow two sequential steps
+Now it is time to make some predictions on the testing set. Here I follow two sequential steps
 
 - Apply scores on testing set that overlaps with the training set.
 - Apply scores on the non-overlapping days between training and testing sets.
-
-## Comments and further steps
-
-The test set 'dataframe_merged' incorporates data from the testing set and the model 'predictions' for the days overlapping with the training set. The predictions for the remaining days will have to be filled up based the data available from the previous days. This is done with an iterative procedure as shown below. For each iteration the following operations take place
-
-We split the dataset into two components; one, say ds1, with scores (predictions) available, the other, say ds2, without predictions.
-We extract the row in the dataset which is in order the first to not have a prediction.
-We apply the model on the row obtained in step 2.
-Finally we define a new dataset which glues ds1 with ds2 which now has its first row modified to include the model prediction, with this new dataset we go back to step 1.
 
 ## Final steps
 
 The final step is to incorporate the results from the previous section into the test dataset. Let's do it and have a quick look at the results.
 
-Comments
-
-We inspect now our results (incorporated in 'final_output').
-
-In this simple scenario the model seem to be able to predict growing cumulative COVID-19 cases vs time
+In this simple scenario the model seem to be able to predict growing cumulative COVID-19 cases vs time. 
 How does the model prediction compare to the actual data? I am publishing this notebook on 08/05. The model prediction for today is approx 224349 cases to be compared to the actual cases 215858 as reported here https://www.ecdc.europa.eu/en/geographical-distribution-2019-ncov-cases. The model is pretty accurate (~95% accuracy) but it is also tuned on a training data which has a strong overlap with the test data.
 As expected, according to the discussion in the introduction section, the model tend to over-predict the amount of cases due to the weight of the data from early stage of the pandemic.
